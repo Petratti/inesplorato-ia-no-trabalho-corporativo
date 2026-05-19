@@ -1,0 +1,6 @@
+# Apache: MIME correto para módulos ES (Vite) e assets estáticos
+<IfModule mod_mime.c>
+  AddType application/javascript .js .mjs
+  AddType text/css .css
+  AddType video/webm .webm
+</IfModule>
