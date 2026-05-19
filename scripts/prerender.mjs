@@ -99,16 +99,15 @@ function stripGtmRuntimeArtifacts(html) {
     );
 }
 
-/** Mesmos caminhos do dist/JS: /assets/… (base na raiz) */
+/** Caminhos relativos para deploy em subpasta (ex.: /outra-app/landing/) */
 function normalizeAssetPaths(html) {
   const origin = `http://127.0.0.1:${PORT}`;
-  return html
-    .split(`${origin}`)
-    .join("")
-    .split("./assets/")
-    .join("/assets/")
-    .split("/ia-no-trabalho-corporativo/assets/")
-    .join("/assets/");
+  let out = html.split(`${origin}`).join("");
+  out = out.replace(/\/ia-no-trabalho-corporativo\/assets\//g, "./assets/");
+  // Só /assets/ absoluto (não alterar ./assets/ — split/join gerava ../assets/)
+  out = out.replace(/(^|["'(\s=])\/assets\//g, "$1./assets/");
+  out = out.replace(/\.\.\/assets\//g, "./assets/");
+  return out.replace(/\.\/\.\/assets\//g, "./assets/");
 }
 
 function isBlockedRequest(url) {
@@ -157,10 +156,10 @@ async function main() {
     let html = await page.content();
     await browser.close();
 
-    html = normalizeAssetPaths(html);
     html = replaceBlock(html, GTM_BODY_START, GTM_BODY_END, gtmBodyBlock);
     html = stripGtmRuntimeArtifacts(html);
     html = applyDistHead(html);
+    html = normalizeAssetPaths(html);
 
     rmSync(OUT, { recursive: true, force: true });
     mkdirSync(OUT, { recursive: true });
@@ -169,7 +168,7 @@ async function main() {
     writeFileSync(join(OUT, "index.html"), html, "utf8");
 
     console.log(`HTML estático gerado em: ${OUT}/`);
-    console.log("  index.html  — paths /assets/ na raiz (igual dist)");
+    console.log("  index.html  — paths ./assets/ (relativos, para subpasta)");
     console.log("  assets/     — cópia dos arquivos do build");
   } finally {
     preview.kill("SIGTERM");

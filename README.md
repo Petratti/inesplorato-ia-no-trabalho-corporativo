@@ -5,7 +5,9 @@ Landing page: **Diretrizes para adoção ética e estratégica da IA no trabalho
 - **Produção:** [inesplorato.com.br/ia-no-trabalho-corporativo/](https://inesplorato.com.br/ia-no-trabalho-corporativo/)
 - **Stack:** React 18 + Vite 6 + Tailwind CSS 4
 
-Edite neste repositório, gere o build e publique **manualmente** no servidor (recomendado: pasta `static/`).
+Edite neste repositório, gere o build e publique **manualmente** no servidor.
+
+**O que vai ao ar é sempre a pasta `static/`** — nunca envie `dist/` para produção. O `dist/` é etapa intermediária do build (e serve para testar o bundle React localmente).
 
 ## Início rápido
 
@@ -17,54 +19,60 @@ npm run dev      # desenvolvimento: http://localhost:5173/
 
 ## Build e preview
 
-O comando **`build` só gera arquivos** — não abre navegador nem servidor. Depois do build, use **`preview`** (ou `preview:static`) para testar.
+O comando **`build` só gera arquivos** — não abre navegador nem servidor.
 
-### Versão React (`dist/`)
+### Publicar (sempre `static/`)
 
-SPA com React no cliente — é o build padrão do Vite.
+```bash
+npm run build:static   # gera dist/ (intermediário) + static/ (vai ao ar)
+npm run preview:static # confira antes de subir: http://127.0.0.1:8080/
+```
+
+Copie **somente** o conteúdo de `static/` para o servidor.
+
+### `dist/` — só desenvolvimento e validação
+
+SPA React gerada pelo Vite. Usada pelo prerender e, opcionalmente, para testar o bundle antes de gerar o `static/`. **Não publique `dist/`.**
 
 ```bash
 npm run build          # gera dist/
-npm run preview        # testa: http://localhost:4173/
+npm run preview        # teste opcional: http://localhost:4173/
 ```
 
-Ou, com verificação de tipos antes:
+Durante o dia a dia, `npm run dev` (`http://localhost:5173/`) basta para editar. Antes de publicar: `npm run build:static` + `npm run preview:static`.
 
-```bash
-npm run check          # typecheck + build (não inicia preview)
-npm run preview
-```
+| Saída | Vai ao ar? | Uso |
+|-------|------------|-----|
+| `static/` | **Sim** | HTML pré-renderizado + `.htaccess` (Apache) → deploy manual |
+| `dist/` | **Não** | Intermediário do build; preview local opcional (porta **4173**) |
 
-Durante o dia a dia, `npm run dev` (`http://localhost:5173/`) já basta; use `build` + `preview` para validar o que vai para produção.
+Ambas usam **`./assets/`** no HTML (nunca `/assets/` na raiz do domínio nem `../assets/`).
 
-### Versão estática (`static/`)
-
-HTML pré-renderizado + mesmos CSS/JS/imagens do `dist`. Recomendado para publicação.
-
-```bash
-npm run build:static   # build + prerender → dist/ e static/
-npm run preview:static # testa: http://127.0.0.1:8080/
-```
-
-| Saída | Conteúdo | Preview local |
-|-------|----------|---------------|
-| `dist/` | `index.html` vazio no `#root` + bundle React | `npm run preview` → porta **4173** |
-| `static/` | HTML já renderizado no `#root` + `.htaccess` (Apache) | `npm run preview:static` → porta **8080** |
-
-Ambas usam assets em `/assets/` (raiz do site). Detalhes e troubleshooting: [docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md).
+Detalhes: [docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md).
 
 ## Publicação manual
 
-Copie **todo o conteúdo** de `static/` (recomendado) ou `dist/` para a **raiz** do site público:
+**Sempre** copie **todo o conteúdo** da pasta `static/` para a subpasta do site (ex.: `…/ia-no-trabalho-corporativo/`). Mantenha `index.html` e a pasta `assets/` **no mesmo nível**:
+
+```bash
+npm run build:static
+npm run preview:static   # revisão local
+# depois: upload/cópia de static/ → servidor
+```
+
+Estrutura no servidor (cópia de `static/`):
 
 ```
-public/
+ia-no-trabalho-corporativo/
 ├── index.html
-├── .htaccess      # só em static/ (Apache)
+├── .htaccess
 └── assets/
+    ├── index-….js
+    ├── index-….css
+    └── …
 ```
 
-A app roda em `/` (`base: '/'` em `vite.config.ts`). As meta tags `og:url` e `canonical` apontam para a URL oficial de marketing.
+Configuração no Vite: `base: './'` em `vite.config.ts`. As meta tags `og:url` e `canonical` apontam para a URL oficial de marketing (independente do caminho dos assets).
 
 ## Onde editar
 
@@ -75,7 +83,7 @@ A app roda em `/` (`base: '/'` em `vite.config.ts`). As meta tags `og:url` e `ca
 | `src/assets/` | Imagens |
 | `src/svg/` | SVGs (hero, footer) |
 | `src/styles/` | Tailwind, fontes, cores |
-| `vite.config.ts` | `base: '/'` |
+| `vite.config.ts` | `base: './'` (assets relativos) |
 
 ## Documentação
 
@@ -87,10 +95,10 @@ A app roda em `/` (`base: '/'` em `vite.config.ts`). As meta tags `og:url` e `ca
 | Script | Descrição |
 |--------|-----------|
 | `dev` | Desenvolvimento com hot reload (`5173`) |
-| `build` | Gera `dist/` (não inicia servidor) |
-| `preview` | Serve `dist/` localmente (`4173`) |
-| `build:static` | `build` + `prerender` → `static/` |
-| `preview:static` | Serve `static/` com MIME correto (`8080`) |
+| `build` | Gera `dist/` (intermediário; não publicar) |
+| `preview` | Testa `dist/` localmente (`4173`) — opcional |
+| `build:static` | Gera `static/` para produção (`build` + prerender) |
+| `preview:static` | Testa `static/` antes do deploy (`8080`) |
 | `prerender` | Gera `static/` a partir de `dist/` (exige `build` antes) |
 | `typecheck` | Verifica TypeScript |
 | `check` | `typecheck` + `build` |

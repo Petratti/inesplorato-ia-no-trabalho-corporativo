@@ -2,6 +2,15 @@
 
 App **React + Vite + Tailwind CSS v4**. Todo o trabalho de conteúdo e layout acontece neste repositório.
 
+## O que vai ao ar
+
+| Pasta | Produção |
+|-------|----------|
+| **`static/`** | **Sim** — é o único artefato de deploy |
+| `dist/` | **Não** — build intermediário do Vite; o prerender lê o `dist/` e gera o `static/` |
+
+Fluxo de publicação: `npm run build:static` → `npm run preview:static` → copiar **`static/`** para o servidor.
+
 ## Requisitos
 
 | Ferramenta | Versão |
@@ -29,42 +38,40 @@ Abra `http://localhost:5173/`.
 | `npm run preview:static` | Não | Sim → serve `static/` |
 | `npm run dev` | Não (compila sob demanda) | Sim → desenvolvimento |
 
-**Regra:** sempre rode `preview` ou `preview:static` **depois** do build correspondente.
+**Regra:** o preview de produção é `preview:static` (pasta que vai ao ar). O `preview` do `dist/` é opcional, só para debug do bundle React.
 
 ## Comandos
 
 | Comando | O que faz |
 |---------|-----------|
 | `npm run dev` | Hot reload em `http://localhost:5173/` |
-| `npm run build` | Gera `dist/` (SPA React) |
-| `npm run preview` | Testa `dist/` em `http://localhost:4173/` |
-| `npm run build:static` | `build` + captura HTML → pasta `static/` |
-| `npm run preview:static` | Testa `static/` em `http://127.0.0.1:8080/` |
+| `npm run build` | Gera `dist/` (intermediário; não publicar) |
+| `npm run preview` | Testa `dist/` em `http://localhost:4173/` (opcional) |
+| `npm run build:static` | Gera `static/` para deploy (`build` + prerender) |
+| `npm run preview:static` | Testa `static/` antes de publicar (`http://127.0.0.1:8080/`) |
 | `npm run prerender` | Só o passo estático (requer `dist/` existente) |
 | `npm run typecheck` | Verifica TypeScript |
 | `npm run check` | `typecheck` + `build` |
 | `npm run clean` | Apaga `dist/` e `static/` |
 
-## Duas saídas de build
+## Duas pastas geradas pelo build
 
-### 1. `dist/` — versão React (não estática)
+### `static/` — artefato de produção (único deploy)
 
-- O `index.html` tem um `#root` vazio; o React monta a página no navegador.
-- Modal RD Station e interações dependem do JavaScript.
-- **Desenvolver:** `npm run dev`
-- **Validar build:** `npm run build` → `npm run preview` → `http://localhost:4173/`
-- **Publicar:** copie o conteúdo de `dist/` para a raiz do host.
-
-### 2. `static/` — HTML pré-renderizado
-
-- O Puppeteer abre o `preview` do Vite, espera o React renderizar e grava o DOM em `static/index.html`.
-- O `<head>` é o mesmo do `dist/index.html` (inclui o `<script type="module">` do bundle).
-- Copia `dist/assets/` para `static/assets/` e inclui `.htaccess` para Apache.
+- HTML pré-renderizado: o Puppeteer abre o preview do `dist/`, espera o React renderizar e grava o DOM em `static/index.html`.
+- O `<head>` é o mesmo do `dist/index.html` (inclui o `<script type="module">` do bundle para modal e interações).
+- Copia `dist/assets/` → `static/assets/` e inclui `.htaccess` para Apache.
+- URLs normalizadas para **`./assets/…`** no HTML.
 - **Gerar:** `npm run build:static`
-- **Testar:** `npm run preview:static` → `http://127.0.0.1:8080/`
-- **Publicar:** copie o conteúdo de `static/` (recomendado).
+- **Testar antes de publicar:** `npm run preview:static` → `http://127.0.0.1:8080/` (`scripts/serve-static.mjs`, MIME correto para módulos ES).
+- **Publicar:** copie **tudo** de `static/` para o servidor. Nada mais.
 
-O servidor de `preview:static` é `scripts/serve-static.mjs` (MIME `application/javascript` correto para módulos ES).
+### `dist/` — intermediário (não publicar)
+
+- Build Vite padrão: `#root` vazio, React monta no cliente.
+- Entrada obrigatória do `prerender`; não envie esta pasta ao servidor de produção.
+- **Desenvolver:** `npm run dev`
+- **Teste opcional do bundle:** `npm run build` → `npm run preview` → `http://localhost:4173/`
 
 ## Fluxo de trabalho
 
@@ -72,9 +79,19 @@ O servidor de `preview:static` é `scripts/serve-static.mjs` (MIME `application/
 
 1. Edite `src/app/components/`, `src/assets/`, etc.
 2. `npm run dev` e confira em `http://localhost:5173/`.
-3. Antes de publicar: `npm run check`.
+3. Antes de publicar: `npm run check` (ou `npm run build:static`).
 
-### Testar build React antes de publicar
+### Publicar (único fluxo de deploy)
+
+```bash
+npm run build:static
+npm run preview:static
+# http://127.0.0.1:8080/ — deve bater com o que vai ao ar
+```
+
+Depois copie **tudo** de `static/` para a subpasta no servidor (ex.: `ia-no-trabalho-corporativo/`). Mantenha `index.html` e `assets/` no mesmo nível.
+
+### Teste opcional do `dist/` (não vai ao ar)
 
 ```bash
 npm run build
@@ -82,15 +99,7 @@ npm run preview
 # http://localhost:4173/
 ```
 
-### Testar e publicar versão estática
-
-```bash
-npm run build:static
-npm run preview:static
-# http://127.0.0.1:8080/
-```
-
-Depois copie **tudo** de `static/` para a raiz do site no servidor.
+Útil para isolar problemas do bundle React antes de rodar o prerender.
 
 ## Estrutura do projeto
 
@@ -115,25 +124,36 @@ scripts/
 ├── preview-static.sh           # npm run preview:static
 └── static.htaccess             # Copiado para static/.htaccess
 
-dist/                           # Build Vite (gerado)
-static/                         # HTML estático (gerado)
+dist/                           # Build Vite (gerado; não publicar)
+static/                         # Deploy manual (único que vai ao ar)
 ```
 
-## URL base
+## Caminhos dos assets
 
-A aplicação é servida na **raiz** (`/`). Em `vite.config.ts`: `base: '/'`.
+| Onde | Formato no HTML compilado |
+|------|---------------------------|
+| `dist/` (Vite) | `./assets/…` via `base: './'` em `vite.config.ts` |
+| `static/` (prerender) | `./assets/…` após `normalizeAssetPaths` em `scripts/prerender.mjs` |
 
-| Ambiente | URL |
-|----------|-----|
+**Correto:** `src="./assets/index-….js"`, `href="./assets/index-….css"`, `src="./assets/hero-bg-….png"`.
+
+**Evitar:** `/assets/…` (exige raiz do domínio) e `../assets/…` (pasta errada em relação ao `index.html`).
+
+## URL base e previews locais
+
+| Ambiente | URL local |
+|----------|-----------|
 | Dev | `http://localhost:5173/` |
 | Preview `dist/` | `http://localhost:4173/` |
 | Preview `static/` | `http://127.0.0.1:8080/` |
 
-URL canônica de marketing (meta tags): `https://inesplorato.com.br/ia-no-trabalho-corporativo/`
+URL canônica de marketing (meta tags, não afeta paths dos assets): `https://inesplorato.com.br/ia-no-trabalho-corporativo/`
 
 ## Publicação manual
 
-O deploy é manual. Estrutura esperada na raiz do host:
+O deploy é **sempre** manual e **sempre** a partir de `static/`. Não use `dist/` em produção.
+
+Estrutura a copiar para o servidor (subpasta do site):
 
 ```
 index.html
@@ -141,13 +161,17 @@ assets/
   index-….js
   index-….css
   …imagens e vídeo
-.htaccess          # opcional; incluído em static/ para Apache
+.htaccess          # incluído em static/ (Apache)
 ```
 
-- **Recomendado:** conteúdo de `static/` (HTML já renderizado + `.htaccess`).
-- **Alternativa:** conteúdo de `dist/` se o host servir SPA React com MIME correto.
+Não abra `static/index.html` via `file://` — módulos ES exigem HTTP.
 
-Não abra `static/index.html` via `file://` — módulos ES e paths `/assets/` exigem HTTP.
+Exemplo em subpasta (produção):
+
+```
+https://inesplorato.com.br/ia-no-trabalho-corporativo/index.html
+https://inesplorato.com.br/ia-no-trabalho-corporativo/assets/index-….js
+```
 
 ## Live Server e outros servidores
 
@@ -156,9 +180,9 @@ O projeto configura `.vscode/settings.json` com `liveServer.settings.root: "/sta
 **Limitações do Live Server:**
 
 - Pode servir `.js` como `application/octet-stream` → erro em `<script type="module">`.
-- Se a URL for `…/static/index.html` em vez da raiz, `/assets/` aponta para o lugar errado (404).
+- Se a raiz do servidor não for a pasta publicada, `./assets/` pode não resolver (404).
 
-**Preferir:** `npm run preview:static`.
+**Preferir:** `npm run preview:static` ou `npm run preview` (para `dist/`).
 
 **Alternativas:** extensão [Five Server](https://marketplace.visualstudio.com/items?itemName=yandeu.five-server), ou abrir só a pasta `static/` como workspace e servir na raiz.
 
@@ -192,28 +216,29 @@ Edite `src/app/App.tsx`.
 
 ### Página em branco no `preview` (dist)
 
-Abra `http://localhost:4173/` na **raiz**, não em subpath antigo (`/ia-no-trabalho-corporativo/`).
+Abra `http://localhost:4173/` (servidor local na raiz do `dist/`). Confira se rodou `npm run build` antes de `npm run preview`.
 
-Confira se rodou `npm run build` antes de `npm run preview`.
+Em produção, a pasta publicada pode estar em qualquer subpath; os assets são relativos (`./assets/`).
 
 ### `prerender` falha
 
 - Rode `npm run build` primeiro (o script usa `vite preview` na porta 4173).
 - Puppeteer precisa de Chromium (instalado com `npm ci`).
 
-### Live Server sem CSS/JS
+### CSS/JS não carregam (404 ou MIME)
 
-O `static/index.html` referencia `/assets/...` na raiz do servidor. URL incorreta: `http://localhost:5500/static/index.html` → assets em `/assets/` (fora de `static/`) → 404.
-
-**Solução:** URL `http://localhost:PORT/` com `index.html` e `assets/` no mesmo nível, ou `npm run preview:static`.
+- Confira no HTML gerado se os links são **`./assets/`** (não `/assets/` nem `../assets/`). Se estiver errado, rode `npm run build:static` de novo.
+- Sirva a pasta `static/` como raiz do servidor local, com `index.html` e `assets/` no mesmo nível.
+- Prefira `npm run preview:static` em vez do Live Server.
 
 ### MIME `application/octet-stream` no módulo JS
 
 Live Server e alguns servidores mínimos enviam `.js` com MIME errado.
 
-- **Local:** `npm run preview:static`
+- **Local (`static/`):** `npm run preview:static`
+- **Local (`dist/`):** `npm run preview`
 - **Apache:** use o `.htaccess` gerado em `static/`
-- **Editor:** Five Server em vez do Live Server clássico
+- **Editor:** [Five Server](https://marketplace.visualstudio.com/items?itemName=yandeu.five-server) em vez do Live Server clássico
 
 ### `typecheck` e `.png`
 
