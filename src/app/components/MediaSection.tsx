@@ -1,4 +1,5 @@
 import mediaFastCompany from "@/assets/media-fast-company.png";
+import mediaVeja from "@/assets/media-veja.png";
 import { RevealOnScroll } from "./RevealOnScroll";
 
 type MediaArticleProps = {
@@ -17,15 +18,13 @@ function MediaArticle({ logoSrc, title, description, url }: MediaArticleProps) {
         rel="noopener noreferrer"
         className="bg-white flex flex-col md:flex-row items-start md:items-center gap-[16px] md:gap-[24px] px-[24px] py-[24px] md:py-[32px] w-full transition-shadow duration-300 hover:shadow-lg group"
       >
-        {/* Logo */}
-        <div className="h-[60px] md:h-[76px] w-[180px] md:w-[236px] shrink-0 relative">
-          <div className="absolute inset-0 overflow-hidden flex items-center justify-center">
-            <img
-              alt=""
-              className="max-w-[80%] max-h-[60%] object-contain"
-              src={logoSrc}
-            />
-          </div>
+        {/* Logo — à esquerda até 768px; centralizado no bloco a partir de 769px */}
+        <div className="flex h-[60px] min-[769px]:h-[76px] w-full min-[769px]:w-[236px] shrink-0 items-center justify-start min-[769px]:justify-center">
+          <img
+            alt=""
+            className="h-[36px] min-[769px]:h-[48px] w-auto max-w-[180px] min-[769px]:max-w-[236px] object-contain"
+            src={logoSrc}
+          />
         </div>
 
         {/* Divider line - hidden on mobile */}
@@ -64,6 +63,13 @@ const mediaArticles = [
       "Sem mudança cultural, o potencial da inteligência artificial continuará limitado",
     url: "https://fastcompanybrasil.com/tech/a-ia-nao-vai-potencializar-empresas-sozinha/?utm_source=linkedin&utm_medium=post",
   },
+  {
+    logoSrc: mediaVeja,
+    title: "Executivos não se reconhecem como parte da classe trabalhadora",
+    description:
+      "A conclusão é de Debora Emm, CEO da Inesplorato, consultoria que acaba de lançar um interessante estudo sobre adoção de IA no mundo corporativo",
+    url: "https://veja.abril.com.br/coluna/planeta-ia/executivos-nao-se-reconhecem-como-parte-da-classe-trabalhadora/",
+  },
 ];
 
 export function MediaSection() {
@@ -80,7 +86,7 @@ export function MediaSection() {
         </RevealOnScroll>
 
         {/* Articles List */}
-        <div className="flex flex-col gap-[12px] md:gap-[16px] w-full">
+        <div className="flex flex-col gap-[24px] w-full">
           {mediaArticles.map((article, index) => (
             <RevealOnScroll
               key={index}
