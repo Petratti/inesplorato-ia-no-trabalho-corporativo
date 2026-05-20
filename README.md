@@ -79,8 +79,8 @@ Configuração no Vite: `base: './'` em `vite.config.ts`. As meta tags `og:url` 
 | Pasta / arquivo | Conteúdo |
 |-----------------|----------|
 | `src/app/App.tsx` | Ordem das seções |
-| `src/app/components/` | Seções da landing |
-| `src/assets/` | Imagens |
+| `src/app/components/` | Seções da landing (**Saiu na mídia:** `MediaSection.tsx`) |
+| `src/assets/` | Imagens (logos da mídia: `media-*.png`) |
 | `src/svg/` | SVGs (hero, footer) |
 | `src/styles/` | Tailwind, fontes, cores |
 | `vite.config.ts` | `base: './'` (assets relativos) |
@@ -103,3 +103,7 @@ Configuração no Vite: `base: './'` em `vite.config.ts`. As meta tags `og:url` 
 | `typecheck` | Verifica TypeScript |
 | `check` | `typecheck` + `build` |
 | `clean` | Remove `dist/` e `static/` |
+
+### Novo item em “Saiu na mídia”
+
+No Cursor: **`/`** → **`adicionar-midia`**. O agente pergunta posição, textos, URL e logo; edita `MediaSection.tsx` e `src/assets/` após você confirmar.
