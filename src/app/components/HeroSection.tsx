@@ -153,52 +153,68 @@ function DownloadButton() {
   );
 }
 
+const HERO_VIDEO_FADE_MS = 700;
+
+function HeroVideoBackground() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoReady, setVideoReady] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || videoFailed) return;
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      setVideoReady(true);
+    }
+  }, [videoFailed]);
+
+  const revealVideo = () => {
+    if (!videoFailed) setVideoReady(true);
+  };
+
+  return (
+    <>
+      {videoFailed && (
+        <img
+          className="absolute inset-0 size-full object-cover"
+          src={HERO_POSTER_IMG}
+          alt=""
+          aria-hidden
+          decoding="async"
+        />
+      )}
+      <video
+        ref={videoRef}
+        className="absolute inset-0 size-full object-cover transition-opacity ease-out"
+        style={{
+          opacity: videoFailed ? 0 : videoReady ? 1 : 0,
+          transitionDuration: `${HERO_VIDEO_FADE_MS}ms`,
+        }}
+        src={HERO_VIDEO_SRC}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        onLoadedData={revealVideo}
+        onCanPlay={revealVideo}
+        onError={() => setVideoFailed(true)}
+      />
+    </>
+  );
+}
+
 /*
  * ── HeroBackground ───────────────────────────────────────────
- * Only the background image. Lives inside the sticky wrapper
- * in App.tsx so it stays fixed behind scrolling content.
+ * Solid #d0e0e3 until the video fades in; poster image only if
+ * the video fails to load. Sticky wrapper in App.tsx.
  */
 export function HeroBackground() {
   return (
     <div className="relative w-full h-[100svh] md:h-[760px] bg-[#d0e0e3] overflow-hidden">
-      {/* Background media -- mobile */}
-      <div className="absolute inset-0 md:hidden">
-        {/* Placeholder image – visible until the video loads or if src is missing */}
-        <img
-          className="absolute inset-0 size-full object-cover"
-          src={HERO_POSTER_IMG}
-          alt="Hero background"
-        />
-        <video
-          className="absolute inset-0 size-full object-cover"
-          src={HERO_VIDEO_SRC}
-          autoPlay
-          muted
-          loop
-          playsInline
-          poster={HERO_POSTER_IMG}
-        />
-        {/* Color overlay -- mobile only */}
-        <div className="absolute inset-0 bg-[#4E1807]/30 pointer-events-none" />
-      </div>
-
-      {/* Background media -- desktop */}
-      <div className="absolute inset-0 hidden md:block">
-        {/* Placeholder image – visible until the video loads or if src is missing */}
-        <img
-          className="absolute inset-0 size-full object-cover"
-          src={HERO_POSTER_IMG}
-          alt="Hero background"
-        />
-        <video
-          className="absolute inset-0 size-full object-cover"
-          src={HERO_VIDEO_SRC}
-          autoPlay
-          muted
-          loop
-          playsInline
-          poster={HERO_POSTER_IMG}
-        />
+      <div className="absolute inset-0">
+        <HeroVideoBackground />
+        <div className="absolute inset-0 bg-[#4E1807]/30 pointer-events-none md:hidden" />
       </div>
     </div>
   );
